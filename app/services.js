@@ -1,3 +1,6 @@
+/****************************************************************************************************
+userService: allows us to quickly interact with firebase and parse to create and login users
+****************************************************************************************************/
 app.factory('userService', function ($rootScope, $http, $q, config, geoService) {
 	var userService = {
  		init:function(){
@@ -123,6 +126,13 @@ app.factory('userService', function ($rootScope, $http, $q, config, geoService) 
 	return userService;
 });
 
+
+
+
+
+/****************************************************************************************************
+roleSerivce: allows us to manage parse.com user roles
+****************************************************************************************************/
 app.factory('roleService', function ($rootScope, $http, $q, config) {
 	var roleService = {
 		listAllRoles:function(){
@@ -221,6 +231,14 @@ app.factory('roleService', function ($rootScope, $http, $q, config) {
 	return roleService;
 });
 
+
+
+
+
+/****************************************************************************************************
+geoService: allows us to gracefully request and use the native geolocation services.
+			formats geolocation information into parse-friendly information for saving & searches
+****************************************************************************************************/
 app.factory('geoService', function ($q) {
 	var  geoService={
 		helpModal:function(){
@@ -298,6 +316,13 @@ app.factory('geoService', function ($q) {
 	return geoService;
 });
 
+
+
+
+
+/****************************************************************************************************
+fileService: Allows us to upload files to parse.com and receive returned file information.
+****************************************************************************************************/
 app.factory('fileService', function ($http, config) {
 	var fileService = {
 		upload:function(details,b64,successCallback,errorCallback){
@@ -319,6 +344,14 @@ app.factory('fileService', function ($http, config) {
 	return fileService;
 });
 
+
+
+
+
+/****************************************************************************************************
+roleSerivce: 	makes it easy to setup the roles which will be required on a website.
+				this service is currently only used once to initially setup roles.
+****************************************************************************************************/
 app.factory('initSetupService', function($rootScope, $http, $q, config){
 	//1st time admin user login
 	//Setup permissions and assign 1st user as admin

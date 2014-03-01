@@ -162,26 +162,3 @@ app.directive('footerInfo', function() {
 		}
 	};
 });
-
-var oldHeader
-app.directive('surf', function() {
-	return {
-		restrict: 'C',
-		link: function(scope, elem, attrs) {
-			elem.bind('mouseenter', function(evt){
-				if($(this).text()!=oldHeader)
-					$('.surfer').stop().css({
-						top:$(this).offset().top+1,
-						left:$(this).offset().left,
-						opacity:1
-					}).removeClass('hidden').show().animate({
-						left: "+="+$(this).width(),
-						opacity: 0
-					}, 500, function() {
-						oldHeader = null;
-					})
-				oldHeader = $(this).text()
-			});
-		}
-	};
-});

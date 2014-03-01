@@ -1,3 +1,4 @@
+//(*sp) : Modify all config options below.
 app.factory('config', function ($rootScope, $http) {
 	var config = {
 		fireRoot: 			'https://starterproject.firebaseio.com/',
@@ -9,10 +10,11 @@ app.factory('config', function ($rootScope, $http) {
 	 	roles: 				['Manager','Editor','Writer']
 	};
 
+	//________________________________________DONT MODIFY BELOW THIS LINE________________________________________\\
 	Parse.initialize(config.parseAppId, config.parseJsKey);
-	 $http.defaults.headers.common['X-Parse-Application-Id'] = config.parseAppId;
-	 $http.defaults.headers.common['X-Parse-REST-API-Key'] = config.parseRestApiKey;
-	 $http.defaults.headers.common['Content-Type'] = 'application/json';
+	$http.defaults.headers.common['X-Parse-Application-Id'] = config.parseAppId;
+	$http.defaults.headers.common['X-Parse-REST-API-Key'] = config.parseRestApiKey;
+	$http.defaults.headers.common['Content-Type'] = 'application/json';
 
 	return config;
 });

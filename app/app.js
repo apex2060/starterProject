@@ -1,6 +1,6 @@
 var it = {};
 
-var app = angular.module('SeedApp', ['firebase','pascalprecht.translate','ngAnimate','ngResource','ngRoute'])
+var app = angular.module('(*sp)SeedApp', ['firebase','pascalprecht.translate','ngAnimate','ngResource','ngRoute'])
 .config(function($routeProvider,$translateProvider) {
 	$routeProvider
 	.when('/:view', {
@@ -24,5 +24,5 @@ var app = angular.module('SeedApp', ['firebase','pascalprecht.translate','ngAnim
 
 
 angular.element(document).ready(function() {
-	angular.bootstrap(document, ['SeedApp']);
+	angular.bootstrap(document, ['(*sp)SeedApp']);
 });
