@@ -1,0 +1,18 @@
+{
+	"applications": {
+		"development": {
+			"applicationId": "XXXXXXXX1XXXXXXXXXXXXX", 
+			"masterKey": "XXXXXXXXXXXX1XXXXXXXXX"
+		}, 
+		"production": {
+			"applicationId": "XXXXXXXXX2XXXXXXXXXXXX", 
+			"masterKey": "XXXXXXXXXXXXX2XXXXXXXX"
+		}, 
+		"_default": {
+			"link": "development"
+		}
+	}, 
+	"global": {
+		"parseVersion": "1.2.16"
+	}
+}

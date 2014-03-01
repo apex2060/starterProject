@@ -1,0 +1,33 @@
+<div id="mainContent" class="container" ng-controller="AdminCtrl">
+	<div id="menu" class="row">
+		<div class="col-md-4">
+			<div class="panel panel-default">
+				<div class="panel-heading" ng-hide="data.roles" ng-click="tools.roles.setup()">Setup Roles</div>
+				<div class="panel-heading" ng-show="data.roles">Roles</div>
+				<ul class="list-group">
+					<a class="list-group-item" 
+					ng-repeat="role in data.roles"
+					footer-info="role">
+						<span class="title">{{role.name}}</span>
+					</a>
+				</ul>
+			</div>
+		</div>
+		<div class="col-md-4">
+			<div class="panel panel-default" ng-init="tools.userRoles.listAllUsers()">
+				<div class="panel-heading" ng-init="tools.userRoles.listAllRoles()">All Users</div>
+				<ul class="list-group">
+					<li class="list-group-item" 
+					ng-repeat="user in data.users"
+					footer-info="user"
+					ng-click="tools.userRoles.editUserRoles(user)">
+						<span class="title">{{user.name}}</span>
+						<span class="price">{{user.email}}</span>
+					</li>
+				</ul>
+			</div>
+		</div>
+	</div>
+	<div ng-include="'partials/admin/userModal.html'"></div>
+	<div ng-include="'partials/admin/roleModal.html'"></div>
+</div>
