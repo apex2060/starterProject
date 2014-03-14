@@ -51,12 +51,10 @@ img.grayscale {
 	width: 100%;
 }
 
-
-/*FUN*/
-.surfer{
-	position: absolute;
-	width: 100px;
+.ds-edit{
+	border:12px solid #F90;
 }
+
 
 
 /*OVERRIDES*/

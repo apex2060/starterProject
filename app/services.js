@@ -451,3 +451,218 @@ app.factory('initSetupService', function($rootScope, $http, $q, config){
 	it.initSetupService = initSetupService;
 	return initSetupService;
 });
+
+
+
+
+
+/****************************************************************************************************
+dataService: 	Allows you to create new data objects, store them locally, and sync them realtime
+				as changes occurr.
+****************************************************************************************************/
+app.factory('dataService', function ($rootScope, $http, $q, config, Firebase) {
+	//Set local dataStore obj if it doesn't exist
+	if(!localStorage.getItem('RQdataStore'))
+		localStorage.setItem('RQdataStore', angular.toJson({
+			resource: {},
+			resourceList: [],
+			notLocal:[], 
+			wip: {}
+		}))
+
+	//Load local dataStore
+	var dataStore = angular.fromJson(localStorage.getItem('RQdataStore'));
+
+	//Sync local dataStore with remote
+	for(var i=0; i<dataStore.resourceList.length; i++){
+
+	}
+
+	var DS = {
+		data: function(){
+			return dataStore;
+		},
+		resourceList: function(){
+			return dataStore.resourceList;
+		},
+		localSave:function(){
+			var tempData = angular.fromJson(angular.toJson(dataStore))
+				for(var i=0; i<tempData.notLocal.length; i++)
+					delete tempData.resource[tempData.notLocal[i]]
+			localStorage.setItem('RQdataStore', angular.toJson(tempData))
+		},
+		wip: {
+			add: function(identifier, object){
+				if(object.objectId){
+					if(!dataStore.wip[identifier])
+						dataStore.wip[identifier] = {};
+					dataStore.wip[identifier][object.objectId] = object;
+					DS.localSave();
+				}
+			},
+			remove: function(identifier, objectId){
+				if(typeof(object)=='object')
+					objectId = objectId.objectId
+
+				if(dataStore.wip[identifier])
+					delete dataStore.wip[identifier][objectId];
+			},
+			list: function(){
+				return dataStore.wip;
+			},
+			isInEdit: function(identifier, object){
+				if(dataStore.wip[identifier])
+					return !!dataStore.wip[identifier][object.objectId]
+			},
+			keepResource: function(identifier, resource){
+				if(dataStore.wip[identifier])
+					for(var i=0; i<resource.length; i++)
+						if(dataStore.wip[identifier][resource[i].objectId])
+							resource[i] = dataStore.wip[identifier][resource[i].objectId]
+				return resource;
+			}
+		},
+		resource: function(className, identifier, isLive, isLocal, query){
+			var resource = this;
+			resource.listenId = 'DS-'+identifier;
+			resource.config = {
+				className: className,
+				identifier: identifier,
+				isLive: isLive,
+				isLocal: isLocal,
+				query: query,
+			}
+			if(isLive){
+				resource.config.liveRef = new Firebase(config.fireRoot+identifier)
+				resource.config.liveRef.on('value', function(dataSnapshot) {
+					// alert(dataSnapshot.val())
+					if(dataStore.resource[identifier])
+						var lastUpdate = dataStore.resource[identifier].liveSync;
+					if(dataSnapshot.val() != lastUpdate){
+						resource.loadData(dataSnapshot.val())
+					}
+				});
+			}
+			if(!isLocal){
+				if(dataStore.notLocal && dataStore.notLocal.indexOf(resource.config.identifier) == -1)
+					dataStore.notLocal.push(resource.config.identifier)
+			}
+
+ 			resource.setQuery = function(query){
+				resource.config.query = query;
+			}
+			resource.loadData = function(lastUpdate){
+				var deferred 	= $q.defer();
+				var className 	= resource.config.className
+				var identifier 	= resource.config.identifier
+				var query = '';
+				if(resource.config.query)
+					query = '?'+resource.config.query
+
+				$http.get(config.parseRoot+'classes/'+className+query).success(function(data){
+					dataStore.resource[identifier] = {
+						identifier: identifier,
+						results: DS.wip.keepResource(identifier, data.results),
+						liveSync: lastUpdate
+					}
+
+					DS.localSave();
+					$rootScope.$broadcast(resource.listenId, dataStore.resource[identifier]);
+					deferred.resolve(dataStore.resource[identifier]);
+				}).error(function(data){
+					deferred.reject(data);
+				});
+				return deferred.promise;
+			}
+			function fireBroadcast(timestamp){
+				if(resource.config.liveRef)
+					resource.config.liveRef.set(timestamp)
+				else
+					resource.loadData();
+			}
+			this.item = {
+				list: function(){
+					var deferred = $q.defer();
+					var className 	= resource.config.className
+					var identifier 	= resource.config.identifier
+					if(dataStore.resource[identifier])
+						deferred.resolve(dataStore.resource[identifier]);
+					else
+						resource.loadData().then(function(data){
+							deferred.resolve(data);
+						})
+					return deferred.promise;
+				},
+				get: function(objectId){
+
+				},
+				save: function(object){
+					if(!object)
+						object = {};
+					if(object.objectId)
+						return this.update(object)
+					else
+						return this.add(object)
+				},
+				add: function(object){
+					var deferred = $q.defer();
+					var className = resource.config.className;
+					var identifier = resource.config.identifier;
+					var objectId = object.objectId;
+
+					$http.post(config.parseRoot+'classes/'+className, object).success(function(data){
+						DS.wip.remove(identifier, objectId)
+						fireBroadcast(data.createdAt)
+						deferred.resolve(data);
+					}).error(function(error, data){
+						resource.loadData();
+						deferred.reject(data);
+					});
+					return deferred.promise;
+				},
+				update: function(object){
+					var deferred = $q.defer();
+					var className = resource.config.className;
+					var identifier = resource.config.identifier;
+					var objectId = object.objectId;
+
+					delete object.objectId;
+					delete object.createdAt;
+					delete object.updatedAt;
+
+					$http.put(config.parseRoot+'classes/'+className+'/'+objectId, object).success(function(data){
+						DS.wip.remove(identifier, objectId)
+						fireBroadcast(data.updatedAt)
+						deferred.resolve(data);
+					}).error(function(error, data){
+						resource.loadData();
+						deferred.reject(data);
+					});
+					return deferred.promise;
+				},
+				remove: function(object){
+					var deferred = $q.defer();
+					var className = resource.config.className
+					var identifier = resource.config.identifier;
+					var objectId = object.objectId;
+
+					$http.delete(config.parseRoot+'classes/'+className+'/'+object.objectId).success(function(data){
+						var deletedAt = new Date();
+						DS.wip.remove(identifier, objectId)
+						fireBroadcast(deletedAt.toISOString())
+						deferred.resolve(data);
+					}).error(function(error, data){
+						resource.loadData();
+						deferred.reject(data);
+					});
+					return deferred.promise;
+				}
+			}
+			this.remove = function(){
+				//Remove entire class from dataStore
+			}
+		}
+	}
+	it.DS = DS;
+	return DS;
+});

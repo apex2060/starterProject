@@ -25,6 +25,27 @@ app.directive('contenteditable', function() {
 	};
 });
 
+app.directive('datastore', ['$timeout','dataService', function($timeout, dataService) {
+	return {
+		restrict: 'A',
+		link: function(scope, elm, attrs, ctrl) {
+			if(attrs.identifier && attrs.datastore){
+				scope.$watch(attrs.datastore, function(newValue, oldValue){
+					if(newValue !== oldValue){
+						$(elm).addClass('ds-edit');
+						dataService.wip.add(attrs.identifier, scope[attrs.datastore]);
+					}
+				}, true)
+			}else{
+				console.error('Either a datastore or identifier attr were not defined.  Both must be assigned a value.')
+			}
+
+			if(dataService.wip.isInEdit(attrs.identifier, scope[attrs.datastore]))
+				$(elm).addClass('ds-edit');
+		}
+	};
+}]);
+
 app.directive('mediaManager', function() {
 	return {
 		restrict: 'A',
@@ -138,26 +159,6 @@ app.directive('mediaManager', function() {
 				};
 				reader.readAsDataURL(file);
 				return false;
-			});
-		}
-	};
-});
-
-
-
-app.directive('footerInfo', function() {
-	return {
-		restrict: 'A',
-		link: function(scope, elem, attrs) {
-			elem.bind('mouseover', function(){
-				scope.$root.$apply(function(){
-					scope.$root.footer=scope[attrs.footerInfo];
-				})
-			});
-			elem.bind('mouseout', function(){
-				scope.$root.$apply(function(){
-					scope.$root.footer={};
-				})
 			});
 		}
 	};

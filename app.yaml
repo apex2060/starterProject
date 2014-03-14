@@ -1,4 +1,5 @@
-application: (*sp)seedapp
+#(*sp)
+application: seedapp
 version: 1
 runtime: php
 api_version: 1
