@@ -133,6 +133,7 @@ var NoteCtrl = app.controller('NoteCtrl', function($rootScope, $scope, $q, confi
 var ArticleCtrl = app.controller('ArticleCtrl', function($rootScope, $scope, $q, config, dataService){
 	var myArticle = new dataService.resource('notes', '235ea8/myArticle', false, false);
 		myArticle.setQuery('where={"body":"abc"}');
+
 	myArticle.item.list().then(function(data){
 		$scope.myArticle = data;
 	})

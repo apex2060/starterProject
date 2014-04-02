@@ -33,6 +33,7 @@
 				<div ng-controller="NoteCtrl">
 					
 					<div class="well" ng-repeat="note in myNotes.results" datastore="note" identifier="{{myNotes.identifier}}">
+						<button type="button" class="close" ng-click="tools.note.remove(note)">&times;</button>
 						<p>{{note.body}}</p>
 					</div>
 					<div class="well">
@@ -71,7 +72,7 @@
 
 
 		<div class="col-md-4" ng-controller="ArticleCtrl">
-			<div class="well">{{myArticle}}</div>
+			<div class="well" moveable="myArticle.xyLocation">{{myArticle}}</div>
 		</div>
 	</div>
 </div>

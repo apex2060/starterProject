@@ -459,6 +459,33 @@ app.factory('initSetupService', function($rootScope, $http, $q, config){
 /****************************************************************************************************
 dataService: 	Allows you to create new data objects, store them locally, and sync them realtime
 				as changes occurr.
+				When you use the dataService, you create a new .resource object.  ie. from your
+				controller you would call: 
+				var myList = new dataService.resource(className, identifier, isLive, isLocal, query)
+
+				in the controller, you will want to create a $on listener, and if you want to speed
+				up the loading of locally stored content, you will want to call the .item.list() 
+				method.
+				myList.item.list().then(function(data){
+					$scope.myList = data;
+				})
+				$rootScope.$on(myList.listenId, function(event, data){
+					$scope.myList = data;
+				})
+
+				You can also assign the myList.item to a local scope and use it as a tool ie.
+				$scope.tools = {
+					myItem: myList.item
+				}
+				Doing this allows you to make calls from within the html its self ie.
+				ng-repeat="item in myList.results"
+				ng-click="tools.myItem.remove(item)"
+
+				Finally, if you wish to utilize the WIP, you will want to use the datastore directive
+				See documentation for the datastore directive.
+
+				This service requires Firebase to dynamically update the content.  It uses 
+				localStorage to save information locally for wip and quick access.
 ****************************************************************************************************/
 app.factory('dataService', function ($rootScope, $http, $q, config, Firebase) {
 	//Set local dataStore obj if it doesn't exist
@@ -473,10 +500,7 @@ app.factory('dataService', function ($rootScope, $http, $q, config, Firebase) {
 	//Load local dataStore
 	var dataStore = angular.fromJson(localStorage.getItem('RQdataStore'));
 
-	//Sync local dataStore with remote
-	for(var i=0; i<dataStore.resourceList.length; i++){
 
-	}
 
 	var DS = {
 		data: function(){
@@ -540,6 +564,8 @@ app.factory('dataService', function ($rootScope, $http, $q, config, Firebase) {
 						var lastUpdate = dataStore.resource[identifier].liveSync;
 					if(dataSnapshot.val() != lastUpdate){
 						resource.loadData(dataSnapshot.val())
+					}else{
+						$rootScope.$broadcast(resource.listenId, dataStore.resource[identifier]);
 					}
 				});
 			}
@@ -547,6 +573,8 @@ app.factory('dataService', function ($rootScope, $http, $q, config, Firebase) {
 				if(dataStore.notLocal && dataStore.notLocal.indexOf(resource.config.identifier) == -1)
 					dataStore.notLocal.push(resource.config.identifier)
 			}
+			if(dataStore.resourceList.indexOf(identifier) == -1)
+				dataStore.resourceList.push(identifier)
 
  			resource.setQuery = function(query){
 				resource.config.query = query;
@@ -585,16 +613,37 @@ app.factory('dataService', function ($rootScope, $http, $q, config, Firebase) {
 					var deferred = $q.defer();
 					var className 	= resource.config.className
 					var identifier 	= resource.config.identifier
-					if(dataStore.resource[identifier])
+					if(dataStore.resource[identifier]){
 						deferred.resolve(dataStore.resource[identifier]);
-					else
+						if(!resource.config.isLive)
+							resource.loadData()
+					}else{
 						resource.loadData().then(function(data){
 							deferred.resolve(data);
 						})
+					}
 					return deferred.promise;
 				},
 				get: function(objectId){
+					var deferred = $q.defer();
+					var className 	= resource.config.className
+					var identifier 	= resource.config.identifier
 
+					var resourceList = dataStore.resource[identifier].results;
+					var requestedResource = false;
+					for(var i=0; i<resourceList.length; i++){
+						if(resourceList[i].objectId == objectId)
+							requestedResource = resourceList[i]
+					}
+					if(requestedResource)
+						deferred.resolve(requestedResource);
+					else
+						$http.get(config.parseRoot+'classes/'+className+'/'+objectId).success(function(data){
+							deferred.resolve(data);
+						}).error(function(data){
+							deferred.reject(data);
+						});
+					return deferred.promise;
 				},
 				save: function(object){
 					if(!object)
@@ -659,10 +708,34 @@ app.factory('dataService', function ($rootScope, $http, $q, config, Firebase) {
 				}
 			}
 			this.remove = function(){
-				//Remove entire class from dataStore
+				var identifier = resource.config.identifier;
+
+				var posInNotLocal = dataStore.notLocal.indexOf[identifier]
+				if(posInNotLocal != -1)
+					dataStore.notLocal.splice(posInNotLocal, 1)
+				delete dataStore.resource[identifier]
+				var posInResourceList = dataStore.resourceList.indexOf[identifier]
+				if(posInResourceList != -1)
+					dataStore.notLocal.splice(posInResourceList, 1)
+				delete dataStore.wip[identifier]
+
+				DS.localSave();
 			}
 		}
 	}
 	it.DS = DS;
 	return DS;
+});
+
+
+
+
+
+/****************************************************************************************************
+mediaService: 	Allows you to easily manage and provide access to users when adding, or editing 
+				any file or refrence.  The first use case is adding a picture to a photo gallery.
+				Most all files are supported.  Search and filter is available.  
+****************************************************************************************************/
+app.factory('mediaService', function ($rootScope, $http, $q, config, dataService) {
+	
 });
