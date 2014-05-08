@@ -1,13 +1,18 @@
 var it = {};
 
-var app = angular.module('(*sp)SeedApp', ['firebase','pascalprecht.translate','ngAnimate','ngResource','ngRoute'])
+var app = angular.module('(*sp)StarterProject', ['firebase','pascalprecht.translate','ngAnimate','ngResource','ngRoute','ngTouch'])
 .config(function($routeProvider,$translateProvider) {
 	$routeProvider
+
 	.when('/:view', {
 		templateUrl: 'views/main.html',
 		controller: 'MainCtrl'
 	})
 	.when('/:view/:id', {
+		templateUrl: 'views/main.html',
+		controller: 'MainCtrl'
+	})
+	.when('/:module/:view/:id', {
 		templateUrl: 'views/main.html',
 		controller: 'MainCtrl'
 	})
@@ -24,5 +29,5 @@ var app = angular.module('(*sp)SeedApp', ['firebase','pascalprecht.translate','n
 
 
 angular.element(document).ready(function() {
-	angular.bootstrap(document, ['(*sp)SeedApp']);
+	angular.bootstrap(document, ['(*sp)StarterProject']);
 });

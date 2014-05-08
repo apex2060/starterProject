@@ -1,20 +1,27 @@
-//(*sp) : Modify all config options below.
 app.factory('config', function ($rootScope, $http) {
 	var config = {
-		fireRoot: 			'https://starterproject.firebaseio.com/',
-		fireRef: 			new Firebase('https://starterproject.firebaseio.com/'),
+		fireRoot: 			'https://shoeboxed.firebaseio.com/',
+		fireRef: 			new Firebase('https://shoeboxed.firebaseio.com/'),
 		parseRoot: 			'https://api.parse.com/1/',
-	 	parseAppId: 		'rHyi1Yom55l8mME6oRppfaK5pPwkpZf7dpJYhKtw',
-	 	parseJsKey: 		'0Ba4VFZ4u6Zz89S7pQzboYpiCqNWhaWL2yvyZ6lR',
-	 	parseRestApiKey: 	'1lZ8ptEhn9R9hSgX9AFQT1q06BPhroIN1Pip7esK',
-	 	roles: 				['Manager','Editor','Writer']
+	 	parseAppId: 		'Iw9DHXLzR7zp5AvEPAE45Yfksz0wHutEoPPgLnoP',
+	 	parseJsKey: 		'pNULiL0dewElGqCVQsRMYDWsjMSY1nrCDnXyPXqB',
+	 	parseRestApiKey: 	'4PAokBweya2d7ACcfAOBWImB3UEVZXxU38HJsEK3',
+	 	roles: 				['Admin','Moderator','Editor','ValidUser']
 	};
 
-	//________________________________________DONT MODIFY BELOW THIS LINE________________________________________\\
 	Parse.initialize(config.parseAppId, config.parseJsKey);
-	$http.defaults.headers.common['X-Parse-Application-Id'] = config.parseAppId;
-	$http.defaults.headers.common['X-Parse-REST-API-Key'] = config.parseRestApiKey;
-	$http.defaults.headers.common['Content-Type'] = 'application/json';
+	 $http.defaults.headers.common['X-Parse-Application-Id'] = config.parseAppId;
+	 $http.defaults.headers.common['X-Parse-REST-API-Key'] = config.parseRestApiKey;
+	 $http.defaults.headers.common['Content-Type'] = 'application/json';
 
 	return config;
+});
+
+
+
+app.factory('settings', function ($rootScope) {
+	var settings = {
+		
+	};
+	return settings;
 });

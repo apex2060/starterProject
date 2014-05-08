@@ -1,101 +1,91 @@
-/****************************************************************************************************
-userService: allows us to quickly interact with firebase and parse to create and login users
-****************************************************************************************************/
-app.factory('userService', function ($rootScope, $http, $q, config, geoService) {
+app.factory('userService', function ($rootScope, $http, $q, config) {
 	var userService = {
+		user:function(){
+			var deferred = $q.defer();
+			if($rootScope.user)
+				deferred.resolve($rootScope.user);
+			else{
+				$rootScope.$on('authenticated', function(event,user) {
+					deferred.resolve(user);
+				});
+			}
+			return deferred.promise;
+		},
+		// settings:function(){
+		// 	var deferred = $q.defer();
+		// 	if($rootScope.user && $rootScope.user.settings.__type != 'Pointer'){
+		// 		deferred.resolve($rootScope.user.settings);
+		// 	}else{
+		// 		userService.user().then(function(user){
+		// 			if(user && user.settings && user.settings.__type != 'Pointer'){
+		// 				deferred.resolve(user.settings);
+		// 			}else{
+		// 				$http.get(config.parseRoot+'classes/UserSettings/'+user.settings.objectId+'?include=school,schedule').success(function(data){
+		// 					for(var i=0; i<data.schedule.length; i++)
+		// 						data.school.hours[data.schedule[i].hour].course = data.schedule[i]
+		// 					$rootScope.user.settings = data;
+		// 					deferred.resolve(data);
+		// 				})
+		// 			}
+		// 		})
+		// 	}
+		// 	return deferred.promise;
+		// },
  		init:function(){
- 			if($rootScope.user==undefined){
-	 			if(navigator.onLine){
-	 				userService.auth = new FirebaseSimpleLogin(config.fireRef, function(error, data) {
-	 					if (error) {
-	 						console.log(error);
-	 					} else if (data) {
-							// console.log('FireAuth has been authenticated!')
-							$('#userLoginModal').modal('hide');
-							if(localStorage.user){
-								var localUser = angular.fromJson(localStorage.user);
-								$http.defaults.headers.common['X-Parse-Session-Token'] = localUser.sessionToken;
-							}
-							userService.initParse(data);
-						} else {
-							// console.log('not logged in.');
-							$rootScope.$broadcast('authError');
-						}
-					});
-	 			}else{
-	 				alert('You are not online!')
-	 			}
-	 		}
- 		},
- 		initParse:function(){
+ 			if(localStorage.user){
+				var localUser = angular.fromJson(localStorage.user);
+				$http.defaults.headers.common['X-Parse-Session-Token'] = localUser.sessionToken;
+			}
  			$http.get(config.parseRoot+'users/me').success(function(data){
  				userService.getRoles(data).then(function(roles){
  					data.roles = roles;
 	 				$rootScope.user=data;
-	 				$rootScope.user.isAdmin = userService.is('Admin')
-	 				$rootScope.user.isManager = userService.is('Manager')
-	 				$rootScope.user.isEditor = userService.is('Editor')
-	 				$rootScope.user.isEmployee = userService.is('Employee')
+	 				$rootScope.$broadcast('authenticated', data);
  				})
  			}).error(function(){
-				alert('You are not authenticated any more!');
+				//Prompt for login
 			});
  		},
  		signupModal:function(){
  			$('#userSignupModal').modal('show');
  		},
  		signup:function(user){
- 			userService.signupParse(user);
- 		},
- 		signupParse:function(user){
+ 			user.fullName = user.firstName + ' ' + user.lastName
  			user.username = user.email;
  			if(user.password!=user.password1){
  				console.error('error','Your passwords do not match.');
  			}else{
  				delete user.password1;
- 				$http.post('https://api.parse.com/1/users', user).success(function(data){
- 					userService.signupFire(user);
+ 				$http.post(config.parseRoot+'users', user).success(function(data){
+ 					$('#userSignupModal').modal('hide');
+ 					window.location.hash='#/registration/joinSchool'
+ 					userService.login(user);
  				}).error(function(error, data){
  					console.log('signupParse error: ',error,data);
  				});
  			}
  		},
- 		signupFire:function(user){
- 			userService.auth.createUser(user.email, user.password, function(error, data) {
- 				if(error)
- 					console.log('signupFire error: ',error,data)
- 				else{
- 					$('#userSignupModal').modal('hide');
- 					userService.login(user);
- 				}
- 			});
- 		},
  		loginModal:function(){
  			$('#userLoginModal').modal('show');
  		},
  		login:function(user){
- 			userService.loginParse(user);
- 		},
- 		loginParse:function(user){
  			var login = {
  				username:user.email,
  				password:user.password
  			}
- 			$http.get("https://api.parse.com/1/login", {params: login}).success(function(data){
+ 			$http.get(config.parseRoot+"login", {params: login}).success(function(data){
  				$http.defaults.headers.common['X-Parse-Session-Token'] = data.sessionToken;
  				localStorage.user=angular.toJson(data);
- 				$rootScope.user=data;
- 				userService.loginFire(user);
+ 				userService.getRoles(data).then(function(roles){
+ 					data.roles = roles;
+	 				$rootScope.user=data;
+	 				$('#userLoginModal').modal('hide');
+ 					$rootScope.$broadcast('authenticated', data);
+ 				})
  			}).error(function(data){
  				console.error('error',data.error);
 				// $('#loading').removeClass('active');
 			});
- 		},
- 		loginFire:function(user){
- 			userService.auth.login('password', {
- 				email: user.email,
- 				password: user.password
- 			});
  		},
  		logout:function(){
  			localStorage.clear();
@@ -130,55 +120,96 @@ app.factory('userService', function ($rootScope, $http, $q, config, geoService) 
 
 
 
-/****************************************************************************************************
-roleSerivce: allows us to manage parse.com user roles
-****************************************************************************************************/
+
+
+
+
+
 app.factory('roleService', function ($rootScope, $http, $q, config) {
+	var userList = [];
+	var roleList = [];
+	var unassigned = false;
 	var roleService = {
-		listAllRoles:function(){
-			$http.get(config.parseRoot+'classes/_Role').success(function(data){
-				$rootScope.data.roles = data.results;
-			}).error(function(data){
-				console.error(data);
-			});
-		},
-		listAllUsers:function(){
-			$http.get(config.parseRoot+'classes/_User').success(function(data){
-				$rootScope.data.users = data.results;
-			}).error(function(data){
-				console.error(data);
-			});
-		},
-		listUserRoles:function(user){
+		reassign:function(){
 			var deferred = $q.defer();
-			var roleQry = 'where={"users":{"__type":"Pointer","className":"_User","objectId":"'+user.objectId+'"}}'
-			$http.get(config.parseRoot+'classes/_Role?'+roleQry).success(function(data){
+			roleService.listUsers().then(function(users){
+				var users = angular.fromJson(angular.toJson(users))
+				var assignedUsers = [];
+				for(var i=0; i<roleList.length; i++)
+					for(var u=0; u<roleList[i].users.length; u++)
+						assignedUsers.push(roleList[i].users[u].objectId)	
+
+				unassigned = [];
+				for(var i=0; i<users.length; i++)
+					if(assignedUsers.indexOf(users[i].objectId) == -1)
+						unassigned.push(users[i])
+
+				$rootScope.$broadcast('role-reassigned', unassigned)
+				deferred.resolve(unassigned);
+			})
+			return deferred.promise;
+		},
+		unassigned:function(){
+			var deferred = $q.defer();
+			if(unassigned){
+				deferred.resolve(unassigned);
+			}else{
+				roleService.reassign().then(function(){
+					deferred.resolve(unassigned);
+				});
+			}
+			return deferred.promise;
+		},
+		detailedRoles:function(){
+			var deferred = $q.defer();
+			roleService.listRoles().then(function(roles){
+				$rootScope.data.roles = [];
+				var listToGet = [];
+				for(var i=0; i<roles.length; i++){
+					listToGet.push(roleService.roleUserList(roles[i]))
+				}
+				$q.all(listToGet).then(function(roles){
+					roleList = roles;
+					deferred.resolve(roles);
+				})
+			})
+			return deferred.promise;
+		},
+		listRoles:function(){
+			var deferred = $q.defer();
+			$http.get(config.parseRoot+'classes/_Role').success(function(data){
 				deferred.resolve(data.results);
 			}).error(function(data){
 				deferred.reject(data);
 			});
 			return deferred.promise;
 		},
-		editUserRoles:function(user){
-			$rootScope.temp.user = user;
-			roleService.listUserRoles(user).then(function(roles){
-				$rootScope.temp.user.roles = roles;
-			})
-			$('#adminUserModal').modal('show');
+		roleUserList:function(role){
+			var deferred = $q.defer();
+			var roleQry = 'where={"$relatedTo":{"object":{"__type":"Pointer","className":"_Role","objectId":"'+role.objectId+'"},"key":"users"}}'
+			$http.get(config.parseRoot+'classes/_User?'+roleQry).success(function(data){
+				role.users = data.results;
+				deferred.resolve(role);
+			}).error(function(data){
+				deferred.reject(data);
+			});
+			return deferred.promise;
+		},
+		listUsers:function(){
+			var deferred = $q.defer();
+			$http.get(config.parseRoot+'classes/_User').success(function(data){
+				userList = data.results;
+				deferred.resolve(data.results);
+			}).error(function(data){
+				deferred.reject(data);
+			});
+			return deferred.promise;
 		},
 		toggleUserRole:function(user,role){
 			if(roleService.hasRole(user,role))
-				roleService.deleteUserRole(user,role).then(function(data){
-					roleService.listUserRoles(user).then(function(roles){
-						$rootScope.temp.user.roles = roles;
-					})
-				})
+				roleService.deleteUserRole(user,role)
 			else
-				roleService.addUserRole(user,role).then(function(data){
-					roleService.listUserRoles(user).then(function(roles){
-						$rootScope.temp.user.roles = roles;
-					})
-				})
+				roleService.addUserRole(user,role)
 		},
 		addUserRole:function(user,role){
 			var deferred = $q.defer();
@@ -193,7 +224,8 @@ app.factory('roleService', function ($rootScope, $http, $q, config) {
 				}
 			}
 			$http.put(config.parseRoot+'classes/_Role/'+role.objectId, request).success(function(data){
-				console.log('Role Updated: ',data)
+				role.users.push(user);
+				roleService.reassign();
 				deferred.resolve(data);
 			}).error(function(data){
 				deferred.reject(data);
@@ -213,6 +245,8 @@ app.factory('roleService', function ($rootScope, $http, $q, config) {
 				}
 			}
 			$http.put(config.parseRoot+'classes/_Role/'+role.objectId, request).success(function(data){
+				role.users.splice(role.users.indexOf(user), 1)
+				roleService.reassign();
 				deferred.resolve(data);
 			}).error(function(data){
 				deferred.reject(data);
@@ -220,11 +254,14 @@ app.factory('roleService', function ($rootScope, $http, $q, config) {
 			return deferred.promise;
 		},
 		hasRole:function(user, role){
-			if(user && user.roles)
-				for(var i=0; i<user.roles.length; i++)
-					if(user.roles[i].objectId==role.objectId)
+			if(user && role && role.users)
+				for(var i=0; i<role.users.length; i++)
+					if(user.objectId==role.users[i].objectId)
 						return true
 			return false;
+		},
+		roleList:function(){
+			return roleList;
 		}
 	}
 	it.roleService = roleService;
@@ -235,10 +272,57 @@ app.factory('roleService', function ($rootScope, $http, $q, config) {
 
 
 
-/****************************************************************************************************
-geoService: allows us to gracefully request and use the native geolocation services.
-			formats geolocation information into parse-friendly information for saving & searches
-****************************************************************************************************/
+
+
+
+
+
+
+
+app.factory('fileService', function ($http, config) {
+	var fileService = {
+		upload:function(details,b64,successCallback,errorCallback){
+			var file = new Parse.File(details.name, { base64: b64});
+			file.save().then(function(data) {
+				it.fileData = data;
+				console.log('save success',data)
+				if(successCallback)
+					successCallback(data);
+			}, function(error) {
+				console.log('save error',error)
+				if(errorCallback)
+					errorCallback(error)
+			});
+		}
+	}
+
+	it.fileService = fileService;
+	return fileService;
+});
+
+
+
+app.factory('qrService', function () {
+	var qrService = {
+		create:function(text, size){
+			if(!size)
+				size = 256;
+			return 'https://api.qrserver.com/v1/create-qr-code/?size='+size+'x'+size+'&data='+text
+			// return 'https://chart.googleapis.com/chart?'+
+		}
+	}
+
+	it.qrService = qrService;
+	return qrService;
+});
+
+
+
+
+
+
+
+
 app.factory('geoService', function ($q) {
 	var  geoService={
 		helpModal:function(){
@@ -320,38 +404,10 @@ app.factory('geoService', function ($q) {
 
 
 
-/****************************************************************************************************
-fileService: Allows us to upload files to parse.com and receive returned file information.
-****************************************************************************************************/
-app.factory('fileService', function ($http, config) {
-	var fileService = {
-		upload:function(details,b64,successCallback,errorCallback){
-			var file = new Parse.File(details.name, { base64: b64});
-			file.save().then(function(data) {
-				it.fileData = data;
-				console.log('save success',data)
-				if(successCallback)
-					successCallback(data);
-			}, function(error) {
-				console.log('save error',error)
-				if(errorCallback)
-					errorCallback(error)
-			});
-		}
-	}
-
-	it.fileService = fileService;
-	return fileService;
-});
 
 
 
 
-
-/****************************************************************************************************
-roleSerivce: 	makes it easy to setup the roles which will be required on a website.
-				this service is currently only used once to initially setup roles.
-****************************************************************************************************/
 app.factory('initSetupService', function($rootScope, $http, $q, config){
 	//1st time admin user login
 	//Setup permissions and assign 1st user as admin
@@ -441,7 +497,6 @@ app.factory('initSetupService', function($rootScope, $http, $q, config){
 				roleParams.response = data;
 				deferred.resolve(roleParams);
 			}).error(function(error, data){
-				$scope.response = {error:error,data:data};
 				deferred.reject({error:error,data:data});
 			});
 
@@ -456,37 +511,12 @@ app.factory('initSetupService', function($rootScope, $http, $q, config){
 
 
 
-/****************************************************************************************************
-dataService: 	Allows you to create new data objects, store them locally, and sync them realtime
-				as changes occurr.
-				When you use the dataService, you create a new .resource object.  ie. from your
-				controller you would call: 
-				var myList = new dataService.resource(className, identifier, isLive, isLocal, query)
 
-				in the controller, you will want to create a $on listener, and if you want to speed
-				up the loading of locally stored content, you will want to call the .item.list() 
-				method.
-				myList.item.list().then(function(data){
-					$scope.myList = data;
-				})
-				$rootScope.$on(myList.listenId, function(event, data){
-					$scope.myList = data;
-				})
 
-				You can also assign the myList.item to a local scope and use it as a tool ie.
-				$scope.tools = {
-					myItem: myList.item
-				}
-				Doing this allows you to make calls from within the html its self ie.
-				ng-repeat="item in myList.results"
-				ng-click="tools.myItem.remove(item)"
 
-				Finally, if you wish to utilize the WIP, you will want to use the datastore directive
-				See documentation for the datastore directive.
 
-				This service requires Firebase to dynamically update the content.  It uses 
-				localStorage to save information locally for wip and quick access.
-****************************************************************************************************/
+
+
 app.factory('dataService', function ($rootScope, $http, $q, config, Firebase) {
 	//Set local dataStore obj if it doesn't exist
 	if(!localStorage.getItem('RQdataStore'))
@@ -550,32 +580,18 @@ app.factory('dataService', function ($rootScope, $http, $q, config, Firebase) {
 			var resource = this;
 			resource.listenId = 'DS-'+identifier;
 			resource.config = {
+				liveStreams: [],
 				className: className,
 				identifier: identifier,
 				isLive: isLive,
 				isLocal: isLocal,
 				query: query,
 			}
-			if(isLive){
-				resource.config.liveRef = new Firebase(config.fireRoot+identifier)
-				resource.config.liveRef.on('value', function(dataSnapshot) {
-					// alert(dataSnapshot.val())
-					if(dataStore.resource[identifier])
-						var lastUpdate = dataStore.resource[identifier].liveSync;
-					if(dataSnapshot.val() != lastUpdate){
-						resource.loadData(dataSnapshot.val())
-					}else{
-						$rootScope.$broadcast(resource.listenId, dataStore.resource[identifier]);
-					}
-				});
+			
+			resource.addLiveStream = function(identifier){
+				var tempRef = new Firebase(config.fireRoot+identifier)
+				resource.config.liveStreams.push(tempRef);
 			}
-			if(!isLocal){
-				if(dataStore.notLocal && dataStore.notLocal.indexOf(resource.config.identifier) == -1)
-					dataStore.notLocal.push(resource.config.identifier)
-			}
-			if(dataStore.resourceList.indexOf(identifier) == -1)
-				dataStore.resourceList.push(identifier)
-
  			resource.setQuery = function(query){
 				resource.config.query = query;
 			}
@@ -603,11 +619,36 @@ app.factory('dataService', function ($rootScope, $http, $q, config, Firebase) {
 				return deferred.promise;
 			}
 			function fireBroadcast(timestamp){
+				for(var i=0; i<resource.config.liveStreams.length; i++)
+					resource.config.liveStreams[i].set(timestamp);
 				if(resource.config.liveRef)
 					resource.config.liveRef.set(timestamp)
 				else
 					resource.loadData();
 			}
+
+			
+			if(isLive){
+				resource.config.liveRef = new Firebase(config.fireRoot+identifier)
+				resource.config.liveRef.on('value', function(dataSnapshot) {
+					// alert(dataSnapshot.val())
+					if(dataStore.resource[identifier])
+						var lastUpdate = dataStore.resource[identifier].liveSync;
+					if(dataSnapshot.val() != lastUpdate){
+						resource.loadData(dataSnapshot.val())
+					}else{
+						$rootScope.$broadcast(resource.listenId, dataStore.resource[identifier]);
+					}
+				});
+			}
+			if(!isLocal){
+				if(dataStore.notLocal && dataStore.notLocal.indexOf(resource.config.identifier) == -1)
+					dataStore.notLocal.push(resource.config.identifier)
+			}
+			if(dataStore.resourceList.indexOf(identifier) == -1)
+				dataStore.resourceList.push(identifier)
+
+
 			this.item = {
 				list: function(){
 					var deferred = $q.defer();
@@ -646,6 +687,7 @@ app.factory('dataService', function ($rootScope, $http, $q, config, Firebase) {
 					return deferred.promise;
 				},
 				save: function(object){
+					console.log('Save Object: ', object)
 					if(!object)
 						object = {};
 					if(object.objectId)
@@ -670,6 +712,7 @@ app.factory('dataService', function ($rootScope, $http, $q, config, Firebase) {
 					return deferred.promise;
 				},
 				update: function(object){
+					object = angular.fromJson(angular.toJson(object))
 					var deferred = $q.defer();
 					var className = resource.config.className;
 					var identifier = resource.config.identifier;
@@ -721,21 +764,34 @@ app.factory('dataService', function ($rootScope, $http, $q, config, Firebase) {
 
 				DS.localSave();
 			}
+		},
+		parse:{
+			pointer:function(className, objectId){
+				return {
+					__type: 	'Pointer',
+					className: 	className,
+					objectId: 	objectId
+				}
+			},
+			acl: function(read, write){
+				var acl = {};
+					acl[$rootScope.user.objectId] = {
+						read: true,
+						write: true
+					}
+					if(read && write)
+						acl['*'] = {
+							read: read,
+							write: write
+						}
+					else if(read)
+						acl['*'] = {
+							read: read
+						}
+				return acl;
+			}
 		}
 	}
 	it.DS = DS;
 	return DS;
-});
-
-
-
-
-
-/****************************************************************************************************
-mediaService: 	Allows you to easily manage and provide access to users when adding, or editing 
-				any file or refrence.  The first use case is adding a picture to a photo gallery.
-				Most all files are supported.  Search and filter is available.  
-****************************************************************************************************/
-app.factory('mediaService', function ($rootScope, $http, $q, config, dataService) {
-	
 });

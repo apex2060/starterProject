@@ -1,8 +1,8 @@
-#(*sp)
-application: seedapp
+application: (*sp)starterproject
 version: 1
 runtime: php
 api_version: 1
+threadsafe: true
 
 handlers:
 - url: /(.*\.html)

@@ -1,31 +1,48 @@
 <div id="mainContent" class="container" ng-controller="AdminCtrl">
-	<div id="menu" class="row">
-		<div class="col-md-4">
-			<div class="panel panel-default">
-				<div class="panel-heading" ng-hide="data.roles" ng-click="tools.roles.setup()">Setup Roles</div>
-				<div class="panel-heading" ng-show="data.roles">Roles</div>
-				<ul class="list-group">
-					<a class="list-group-item" 
-					ng-repeat="role in data.roles"
-					footer-info="role">
-						<span class="title">{{role.name}}</span>
-					</a>
-				</ul>
-			</div>
+	<div class="cards">
+		<div class="card" ng-show="!data.roles.length">
+			<h2 ng-click="tools.roles.setup()">Setup Roles</h2>
 		</div>
-		<div class="col-md-4">
-			<div class="panel panel-default" ng-init="tools.userRoles.listAllUsers()">
-				<div class="panel-heading" ng-init="tools.userRoles.listAllRoles()">All Users</div>
-				<ul class="list-group">
-					<li class="list-group-item" 
-					ng-repeat="user in data.users"
-					footer-info="user"
-					ng-click="tools.userRoles.editUserRoles(user)">
-						<span class="title">{{user.name}}</span>
-						<span class="price">{{user.email}}</span>
+		<div class="card">
+			<div class="parent" ng-repeat="role in data.roles | orderBy:'order'">
+				<h2>{{role.name}}</h2>
+				<ul class="list child"><!-- child -->
+					<li ng-repeat="user in role.users">
+						<a ng-click="tools.user.editRoles(user)">
+							<span class="title">{{user.fullName}}</span>
+							<span class="sub">{{user.email}}</span>
+						</a>
 					</li>
 				</ul>
 			</div>
+		</div>
+		<div class="card" ng-show="data.unassigned">
+			<h2>Unassigned</h2>
+			<ul class="list">
+				<li ng-repeat="user in data.unassigned">
+					<a ng-click="tools.user.editRoles(user)">
+						<span class="title">{{user.fullName}}</span>
+						<span class="sub">{{user.email}}</span>
+					</a>
+				</li>
+			</ul>
+		</div>
+		<div class="card">
+			<h2>Tools</h2>
+			<ul class="list">
+				<li>
+					<a href="https://docs.google.com/spreadsheet/ccc?key=0As79z8Uw8IvadGc4bnNVdzNscmhvZm56SGZRbmdoMnc&usp=drive_web#gid=0" target="_new">
+						<span class="title">View Recomendations</span>
+						<span class="sub">Google Drive</span>
+					</a>
+				</li>
+				<li>
+					<a href="https://docs.google.com/spreadsheet/ccc?key=0As79z8Uw8IvadEtmUlNhckxuUG1LLU5hS194TzJydHc&usp=drive_web#gid=0" target="_new">
+						<span class="title">View Seminar Reviews</span>
+						<span class="sub">Google Drive</span>
+					</a>
+				</li>
+			</ul>
 		</div>
 	</div>
 	<div ng-include="'partials/admin/userModal.html'"></div>

@@ -7,39 +7,33 @@
 					<h4 class="modal-title">Signup</h4>
 				</div>
 				<div class="modal-body">
-					<div class="form-group">
-						<label for="userName" class="col-lg-3 control-label">Name</label>
+					<!-- <div class="form-group">
+						<label for="desiredRole" class="col-lg-3 control-label">Role</label>
 						<div class="col-lg-9">
-							<input type="text" class="form-control" id="userName" placeholder="Name" ng-model="temp.user.name">
+							<select class="form-control" 
+								ng-model="temp.user.role" 
+								ng-options="c for c in config.roles">
+							</select>
+						</div>
+					</div> -->
+					<div class="form-group">
+						<label for="firstName" class="col-lg-3 control-label">First Name</label>
+						<div class="col-lg-9">
+							<input type="text" class="form-control" id="firstName" placeholder="First Name" ng-model="temp.user.firstName">
 						</div>
 					</div>
 					<div class="form-group">
+						<label for="lastName" class="col-lg-3 control-label">Last Name</label>
+						<div class="col-lg-9">
+							<input type="text" class="form-control" id="lastName" placeholder="Last Name" ng-model="temp.user.lastName">
+						</div>
+					</div>
+					<!-- <div class="form-group">
 						<label for="userPhone" class="col-lg-3 control-label">Phone</label>
 						<div class="col-lg-9">
 							<input type="tel" class="form-control" id="userPhone" ng-model="temp.user.phone">
 						</div>
-					</div>
-
-<!-- 					<div class="form-group" ng-hide="geo!=undefined" ng-init="tools.geo.location(tools.user.temp.setLocation)">
-						<label for="userGeo" class="col-lg-3 control-label">Location</label>
-						<div class="col-lg-9">
-							<p>This service is a local service.  You need to allow access to your computer's location in order to use this service.  To get help sharing your location, click here: </p>
-							<a class="btn btn-block btn-info" ng-click="tools.user.geoHelpModal()">Help With Location</a>
-						</div>
-					</div>
-					<div class="form-group">
-						<label for="userAddress" class="col-lg-3 control-label">Home Address</label>
-						<div class="col-lg-9">
-							<input type="text" class="form-control" id="userAddress" placeholder="## Street. City, State" ng-model="temp.user.address">
-						</div>
-					</div>
-					<div class="form-group">
-						<label for="userZip" class="col-lg-3 control-label">Zip</label>
-						<div class="col-lg-9">
-							<input type="text" class="form-control" id="userZip" ng-model="temp.user.zip">
-						</div>
-					</div>
-					<hr> -->
+					</div> -->
 					<div class="form-group">
 						<label for="userEmail" class="col-lg-3 control-label">Email</label>
 						<div class="col-lg-9">

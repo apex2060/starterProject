@@ -37,8 +37,83 @@ var lib = {
 		random:function(){
 			return Math.floor(Math.random()*16777215).toString(16);
 		}
+	},
+	timeRange:function(hours){
+		function timeDif(start,end){
+			var start = 	start.split(':');
+			var end = 		end.split(':');
+			var hourDif = 	Number(end[0]) - Number(start[0]);
+			var minDif = 	Number(end[1]) - Number(start[1]);
+			var ttlDif = 	hourDif*60+minDif;
+			return ttlDif;
+		}
+		var firstHour = 	hours[0];
+		var secondHour = 	hours[1];
+		var lastHour = 		hours[hours.length-1];
+		var durationMin =	timeDif(firstHour.start,firstHour.end);
+		var offsetMin = 	0; 
+		if(secondHour){
+			offsetMin = 	timeDif(firstHour.end, secondHour.start);
+		}
+		var newStartMin = 	Number(lastHour.end.split(':')[1]) + offsetMin;
+		var newStartHr = 	Number(lastHour.end.split(':')[0]);
+		if(newStartMin>=60){
+			var extraHrs = 	Math.floor(newStartMin/60)
+			newStartMin = 	newStartMin%60
+			newStartHr =	newStartHr + extraHrs;
+		}
+		var newEndMin = 	newStartMin + durationMin;
+		var newEndHr = 		newStartHr
+		if(newEndMin>=60){
+			var extraHrs = 	Math.floor(newEndMin/60)
+			newEndMin = 	newEndMin%60
+			newEndHr =		newEndHr + extraHrs;
+		}
+
+		if(newStartHr<10)
+			newStartHr = '0'+newStartHr;
+		if(newStartMin<10)
+			newStartMin = '0'+newStartMin;
+		if(newEndHr<10)
+			newEndHr = '0'+newEndHr;
+		if(newEndMin<10)
+			newEndMin = '0'+newEndMin;
+		var finalStart = 	newStartHr+':'+newStartMin;
+		var finalEnd = 		newEndHr+':'+newEndMin;
+		return {
+			start: 	finalStart,
+			end: 	finalEnd
+		}
 	}
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
